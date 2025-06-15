@@ -36,6 +36,7 @@ chmod 600 /etc/nginx/ssl/pwn0gotchi.key
 chown -R root:root /etc/nginx/ssl
 
 # Start the application with PM2
+cd /var/www/pwn0gotchi
 pm2 start server.js --name "pwn0gotchi-server"
 pm2 start npm --name "pwn0gotchi-next" -- start
 
@@ -65,17 +66,31 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 10m;
 
+    # Root directory for static files
+    root /var/www/pwn0gotchi/.next;
+    index index.html;
+
     location / {
+        try_files $uri $uri.html $uri/ /index.html;
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /_next/static {
+        alias /var/www/pwn0gotchi/.next/static;
+        expires 365d;
+        access_log off;
     }
 
     location /ws {
-        proxy_pass https://localhost:3001;
+        proxy_pass http://localhost:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
@@ -85,6 +100,10 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 86400;
     }
+
+    # Error pages
+    error_page 404 /404.html;
+    error_page 500 502 503 504 /50x.html;
 }
 EOF
 
@@ -104,6 +123,11 @@ iptables -A INPUT -p tcp --dport 80 -j ACCEPT
 iptables -A INPUT -p tcp --dport 443 -j ACCEPT
 iptables -A INPUT -p tcp --dport 22 -j ACCEPT
 iptables-save > /etc/iptables/rules.v4
+
+# Check if services are running
+echo "Checking service status..."
+pm2 status
+systemctl status nginx
 
 echo "Deployment complete! Your application should be running at https://209.38.123.74"
 echo "Note: You're using a self-signed certificate. Your browser will show a security warning."

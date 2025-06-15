@@ -1,33 +1,24 @@
-const { Server } = require('ws');
-const { Client } = require('ssh2');
-const { SerialPort } = require('serialport');
-const { ReadlineParser } = require('@serialport/parser-readline');
 const express = require('express');
-const path = require('path');
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
+const WebSocket = require('ws');
+const { SerialPort } = require('serialport');
+const { ReadlineParser } = require('@serialport/parser-readline');
+const { Client } = require('ssh2');
 
 const app = express();
-const port = process.env.PORT || 3000;
-const wsPort = process.env.WS_PORT || 3001;
+const port = 3001;  // Changed from 3000 to 3001
+const wsPort = 3002;  // Changed from 3001 to 3002
 
-// Create HTTP server
-const httpServer = http.createServer(app);
-
-// Create HTTPS server with SSL certificates
-const httpsServer = https.createServer({
+// Create HTTPS server with self-signed certificates
+const httpsOptions = {
     key: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.key'),
     cert: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.crt')
-}, app);
+};
 
-// Serve static files
-app.use(express.static(path.join(__dirname)));
-
-// Create WebSocket server
-const wss = new Server({
-    server: httpsServer
-});
+const httpsServer = https.createServer(httpsOptions, app);
+const wss = new WebSocket.Server({ server: httpsServer });
 
 const activeConnections = new Map();
 const processedMessages = new Set();
@@ -607,8 +598,8 @@ async function handleSerialConnection(connection, sendMessage) {
     }
 }
 
-// Start both HTTP and HTTPS servers
-httpServer.listen(port, () => {
+// Start servers
+app.listen(port, () => {
     console.log(`HTTP Server running on port ${port}`);
 });
 
