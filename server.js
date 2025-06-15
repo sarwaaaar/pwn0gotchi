@@ -5,18 +5,28 @@ const { ReadlineParser } = require('@serialport/parser-readline');
 const express = require('express');
 const path = require('path');
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
+const port = process.env.PORT || 3000;
+const wsPort = process.env.WS_PORT || 3001;
 
 // Create HTTP server
 const httpServer = http.createServer(app);
+
+// Create HTTPS server with SSL certificates
+const httpsServer = https.createServer({
+    key: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.key'),
+    cert: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.crt')
+}, app);
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
 
 // Create WebSocket server
 const wss = new Server({
-    server: httpServer
+    server: httpsServer
 });
 
 const activeConnections = new Map();
@@ -597,9 +607,11 @@ async function handleSerialConnection(connection, sendMessage) {
     }
 }
 
-// Start the server
-const PORT = 3001;
-httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`HTTP server running on http://0.0.0.0:${PORT}`);
-    console.log(`WebSocket server running on ws://0.0.0.0:${PORT}`);
+// Start both HTTP and HTTPS servers
+httpServer.listen(port, () => {
+    console.log(`HTTP Server running on port ${port}`);
+});
+
+httpsServer.listen(wsPort, () => {
+    console.log(`HTTPS/WebSocket Server running on port ${wsPort}`);
 });

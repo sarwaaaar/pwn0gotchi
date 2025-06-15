@@ -484,7 +484,12 @@ export default function Home() {
     };
 
     const connectWebSocket = () => {
-      websocket = new WebSocket('ws://209.38.123.74:3001');
+      // Use secure WebSocket for HTTPS
+      const wsUrl = window.location.protocol === 'https:'
+        ? 'wss://209.38.123.74:3001'
+        : 'ws://209.38.123.74:3001';
+
+      websocket = new WebSocket(wsUrl);
 
       websocket.onopen = () => {
         reconnectAttempts = 0;
@@ -562,7 +567,7 @@ export default function Home() {
 
       websocket.onerror = (error) => {
         console.error('WebSocket error:', error);
-        writeMessage(term, 'error', '[-] WebSocket error');
+        writeMessage(term, 'error', '[-] WebSocket connection error');
       };
 
       websocket.onclose = () => {
