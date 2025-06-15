@@ -484,10 +484,10 @@ export default function Home() {
     };
 
     const connectWebSocket = () => {
-      // Use secure WebSocket for HTTPS
-      const wsUrl = window.location.protocol === 'https:'
-        ? 'wss://209.38.123.74:3001'
-        : 'ws://209.38.123.74:3001';
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.hostname}:3002/ws`;
+
+      console.log('Attempting to connect to WebSocket at:', wsUrl);
 
       websocket = new WebSocket(wsUrl);
 

@@ -6,19 +6,38 @@ const WebSocket = require('ws');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 const { Client } = require('ssh2');
+const cors = require('cors');
+const path = require('path');
 
 const app = express();
-const port = 3001;  // Changed from 3000 to 3001
-const wsPort = 3002;  // Changed from 3001 to 3002
+const port = 3001;
+const wsPort = 3002;
+
+// Enable CORS
+app.use(cors());
+
+// SSL certificate paths
+const sslKeyPath = '/etc/nginx/ssl/pwn0gotchi.key';
+const sslCertPath = '/etc/nginx/ssl/pwn0gotchi.crt';
+
+// Verify SSL certificates exist
+if (!fs.existsSync(sslKeyPath) || !fs.existsSync(sslCertPath)) {
+    console.error('SSL certificates not found at:', { sslKeyPath, sslCertPath });
+    process.exit(1);
+}
 
 // Create HTTPS server with self-signed certificates
 const httpsOptions = {
-    key: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.key'),
-    cert: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.crt')
+    key: fs.readFileSync(sslKeyPath),
+    cert: fs.readFileSync(sslCertPath)
 };
 
 const httpsServer = https.createServer(httpsOptions, app);
-const wss = new WebSocket.Server({ server: httpsServer });
+const wss = new WebSocket.Server({
+    server: httpsServer,
+    path: '/ws',
+    perMessageDeflate: false
+});
 
 const activeConnections = new Map();
 const processedMessages = new Set();

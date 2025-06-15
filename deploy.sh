@@ -5,6 +5,11 @@ pm2 stop all
 pm2 delete all
 pm2 unstartup
 
+# Kill any processes using ports 3000, 3001, and 3002
+fuser -k 3000/tcp 2>/dev/null
+fuser -k 3001/tcp 2>/dev/null
+fuser -k 3002/tcp 2>/dev/null
+
 # Remove existing directory
 rm -rf /var/www/pwn0gotchi
 
@@ -37,8 +42,8 @@ chown -R root:root /etc/nginx/ssl
 
 # Start the application with PM2
 cd /var/www/pwn0gotchi
-pm2 start server.js --name "pwn0gotchi-server"
-pm2 start npm --name "pwn0gotchi-next" -- start
+PORT=3001 pm2 start server.js --name "pwn0gotchi-server"
+PORT=3001 pm2 start npm --name "pwn0gotchi-next" -- start
 
 # Setup PM2 to start on boot
 pm2 startup
@@ -66,13 +71,11 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 10m;
 
-    # Root directory for static files
-    root /var/www/pwn0gotchi/.next;
-    index index.html;
+    # Increase max body size
+    client_max_body_size 50M;
 
     location / {
-        try_files $uri $uri.html $uri/ /index.html;
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -81,16 +84,15 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /_next/static {
-        alias /var/www/pwn0gotchi/.next/static;
-        expires 365d;
-        access_log off;
+        
+        # WebSocket support
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 86400;
     }
 
     location /ws {
-        proxy_pass http://localhost:3001;
+        proxy_pass https://localhost:3002;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
@@ -98,12 +100,18 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # WebSocket specific settings
         proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
+        proxy_connect_timeout 86400;
+        
+        # Allow all origins for WebSocket
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+        add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
     }
-
-    # Error pages
-    error_page 404 /404.html;
-    error_page 500 502 503 504 /50x.html;
 }
 EOF
 
