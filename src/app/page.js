@@ -419,7 +419,7 @@ export default function Home() {
     };
 
     const connectWebSocket = () => {
-      websocket = new WebSocket('wss://209.38.123.74:3001');
+      websocket = new WebSocket('wss://209.38.123.74:3443');
 
       websocket.onopen = () => {
         reconnectAttempts = 0;

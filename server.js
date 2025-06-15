@@ -4,26 +4,34 @@ const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 const express = require('express');
 const path = require('path');
+const http = require('http');
 const https = require('https');
 const fs = require('fs');
 
 const app = express();
 
-// SSL certificate options
-const options = {
-    key: fs.readFileSync('/etc/letsencrypt/live/209.38.123.74/privkey.pem'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/209.38.123.74/fullchain.pem')
-};
+// Create HTTP server
+const httpServer = http.createServer(app);
 
-// Create HTTPS server
-const server = https.createServer(options, app);
+// Try to create HTTPS server if certificates exist
+let httpsServer;
+try {
+    const options = {
+        key: fs.readFileSync('/etc/letsencrypt/live/209.38.123.74/privkey.pem'),
+        cert: fs.readFileSync('/etc/letsencrypt/live/209.38.123.74/fullchain.pem')
+    };
+    httpsServer = https.createServer(options, app);
+    console.log('HTTPS server configured successfully');
+} catch (err) {
+    console.log('HTTPS certificates not found, running in HTTP mode only');
+}
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
 
 // Create WebSocket server
 const wss = new Server({
-    server: server
+    server: httpServer
 });
 
 const activeConnections = new Map();
@@ -604,9 +612,16 @@ async function handleSerialConnection(connection, sendMessage) {
     }
 }
 
-// Start the server
+// Start the servers
 const PORT = 3001;
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Secure server running on https://0.0.0.0:${PORT}`);
-    console.log(`Secure WebSocket server running on wss://0.0.0.0:${PORT}`);
+httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`HTTP server running on http://0.0.0.0:${PORT}`);
+    console.log(`WebSocket server running on ws://0.0.0.0:${PORT}`);
 });
+
+if (httpsServer) {
+    httpsServer.listen(3443, '0.0.0.0', () => {
+        console.log(`HTTPS server running on https://0.0.0.0:3443`);
+        console.log(`Secure WebSocket server running on wss://0.0.0.0:3443`);
+    });
+}
