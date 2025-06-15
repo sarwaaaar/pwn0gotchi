@@ -365,13 +365,47 @@ const commandRegistry = [
 ];
 
 function writeAsciiArt(term) {
-  const art1 = `   _______________                        |*\\_/*|________\n  |  ___________  |     .-.     .-.      ||_/-\\_|______  |\n  | |           | |    .****. .****.     | |           | |\n  | |   0   0   | |    .*****.*****.     | |   0   0   | |\n  | |     -     | |     .*********.      | |     -     | |\n  | |   \\___/   | |      .*******.       | |   \\___/   | |\n  | |___     ___|______  .*****.        | |___________| |\n  |_____|_____|        |____.***.____|_______________|\n    _|_______|_|_.............*.............._|________|_\n   / ********** \\                          / ********** \\ \n /  ************  \\                      /  ************  \\ \n--------------------                    --------------------`;
-  const art2 = `                                                 .------.------.    \n  +-------------+                     ___|_____|_____|      |      |_____|    \n  |             | |______           \_____/|_____|_____|      |_____/    \n  |             |        |_______   _____|_____|_|_|        |_______|    \n  |             |     ___))     |____|___|___| \\___    |____/    \n|_____|_____|     ) //o____|___|_____|     \\___|      |      |    \n  |             |  _ (_    >         | |      ]  |      |      |    \n  |          __ | (O)  \\__<          | | ____/   '------'------'    \n  |         /  o| [/] /   \\)        [__|/_                          \n  |             | [\\]|  ( \\         __/___\_____                    \n  |             | [/]|   \\ \\__  ___|            |                   \n  |             | [\\]|    \\___E/%%/|____________|_____              \n  |             | [/]|=====__   (_____________________)             \n  |             | [\\] \\_____ \\    |                  |              \n  |             | [/========\\ |   |                  |              \n  |             | [\\]     []| |   |                  |              \n  |             | [/]     []| |   |                  |              \n  |             | [\\]     []| |_  |                  |              \n  |             | [/]     []|___) |                  |    MEPH      \n====================================================================`;
-  term.writeln(`${ANSI.art}${art1}${ANSI.reset}`);
-  term.writeln(`${ANSI.art}${art2}${ANSI.reset}`);
+  const art = `      \\                 \\
+       \\         ..      \\
+        \\       /  \`-.--.___ __.-.___
+\`-.      \\     /  #   \`-._.-'    \\   \`--.__
+   \`-.        /  ####    /   ###  \\        \`.
+________     /  #### ############  |       _|           .'
+            |\\ #### ##############  \\__.--' |    /    .'
+            | ####################  |       |   /   .'
+            | #### ###############  |       |  /
+            | #### ###############  |      /|      ----
+          . | #### ###############  |    .'<    ____
+        .'  | ####################  | _.'-'\\|
+      .'    |   ##################  |       |
+             \`.   ################  |       |
+               \`.    ############   |       | ----
+              ___\`.     #####     _..____.-'     .
+             |\`-._ \`-._       _.-'    \\\\\\         \`.
+          .'\`-._  \`-._ \`-._.-'\`--.___.-' \\          \`.
+        .' .. . \`-._  \`-._        ___.---'|   \\   \\
+      .' .. . .. .  \`-._  \`-.__.-'        |    \\   \\
+     |\`-. . ..  . .. .  \`-._|             |     \\   \\
+     |   \`-._ . ..  . ..   .'            _|
+      \`-._   \`-._ . ..   .' |      __.--'
+          \`-._   \`-._  .' .'|__.--'
+              \`-._   \`' .'
+                  \`-._.'`;
+
+  term.writeln(`${ANSI.art}${art}${ANSI.reset}`);
 }
 
 export default function Home() {
+  // Add viewport meta tag to prevent zooming
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+      document.head.appendChild(meta);
+    }
+  }, []);
+
   const [command, setCommand] = useState('');
   const [ws, setWs] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -931,16 +965,16 @@ export default function Home() {
   };
 
   return (
-    <main className="flex flex-col justify-between w-[100vw] h-[100vh] bg-[#030506] relative">
+    <main className="flex flex-col justify-between w-[100vw] h-[100vh] bg-[#030506] relative overflow-hidden">
       <div className="flex-1 overflow-hidden pb-24 py-4">
-        <div ref={terminalRef} className="w-full h-full px-4 py-2" />
+        <div ref={terminalRef} className="w-full h-full px-4 py-2" style={{ touchAction: 'none' }} />
       </div>
       <div className="text-[#B294BB] border-t border-[#282E2F] px-4 py-4 fixed bottom-0 left-0 right-0 bg-[#030506] z-50">
         <div className="flex items-center relative">
           <span className="mr-2 whitespace-nowrap">~</span>
           <div className="relative w-full text-sm">
             {isSearching && (
-              <div className="absolute -top-6 left-0 text-[#B294BB] text-[10px]">
+              <div className="absolute -top-6 left-0 text-[#B294BB]">
                 (reverse-i-search)`{searchQuery}': {searchResults[searchIndex] || ''}
               </div>
             )}
@@ -960,7 +994,8 @@ export default function Home() {
                 width: 'auto',
                 maxWidth: '100%',
                 wordBreak: 'break-all',
-                overflowWrap: 'break-word'
+                overflowWrap: 'break-word',
+                touchAction: 'none'
               }}
             />
             {suggestions.length > 0 && command && suggestions[0] !== command && (
