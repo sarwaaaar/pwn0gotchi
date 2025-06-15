@@ -22,7 +22,7 @@ git clone https://github.com/sarwaaaar/pwn0gotchi .
 
 # Install dependencies
 npm install
-npm install express ws cors
+npm install express ws cors serialport @serialport/parser-readline ssh2
 
 # Build the Next.js application
 npm run build
@@ -51,7 +51,7 @@ PORT=3000 pm2 start npm --name "pwn0gotchi-next" -- start
 sleep 5
 
 # Start the WebSocket server
-pm2 start server.js --name "pwn0gotchi-server" -- --port 3001 --ws-port 3002
+PORT=3001 WS_PORT=3002 pm2 start server.js --name "pwn0gotchi-server"
 
 # Setup PM2 to start on boot
 pm2 startup

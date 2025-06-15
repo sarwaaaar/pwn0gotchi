@@ -1,45 +1,32 @@
+const { Server } = require('ws');
+const { Client } = require('ssh2');
+const { SerialPort } = require('serialport');
+const { ReadlineParser } = require('@serialport/parser-readline');
 const express = require('express');
+const path = require('path');
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
-const WebSocket = require('ws');
-const { SerialPort } = require('serialport');
-const { ReadlineParser } = require('@serialport/parser-readline');
-const { Client } = require('ssh2');
-const cors = require('cors');
-const path = require('path');
-
-// Parse command line arguments
-const args = process.argv.slice(2);
-const port = args.find(arg => arg.startsWith('--port='))?.split('=')[1] || 3001;
-const wsPort = args.find(arg => arg.startsWith('--ws-port='))?.split('=')[1] || 3002;
 
 const app = express();
+const port = process.env.PORT || 3001;
+const wsPort = process.env.WS_PORT || 3002;
 
-// Enable CORS
-app.use(cors());
+// Create HTTP server
+const httpServer = http.createServer(app);
 
-// SSL certificate paths
-const sslKeyPath = '/etc/nginx/ssl/pwn0gotchi.key';
-const sslCertPath = '/etc/nginx/ssl/pwn0gotchi.crt';
+// Create HTTPS server with SSL certificates
+const httpsServer = https.createServer({
+    key: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.key'),
+    cert: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.crt')
+}, app);
 
-// Verify SSL certificates exist
-if (!fs.existsSync(sslKeyPath) || !fs.existsSync(sslCertPath)) {
-    console.error('SSL certificates not found at:', { sslKeyPath, sslCertPath });
-    process.exit(1);
-}
+// Serve static files
+app.use(express.static(path.join(__dirname)));
 
-// Create HTTPS server with self-signed certificates
-const httpsOptions = {
-    key: fs.readFileSync(sslKeyPath),
-    cert: fs.readFileSync(sslCertPath)
-};
-
-const httpsServer = https.createServer(httpsOptions, app);
-const wss = new WebSocket.Server({
-    server: httpsServer,
-    path: '/ws',
-    perMessageDeflate: false
+// Create WebSocket server
+const wss = new Server({
+    server: httpsServer
 });
 
 const activeConnections = new Map();
@@ -620,26 +607,11 @@ async function handleSerialConnection(connection, sendMessage) {
     }
 }
 
-// Error handling for servers
-const handleError = (error) => {
-    if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${error.port} is already in use. Please try a different port.`);
-        process.exit(1);
-    } else {
-        console.error('Server error:', error);
-        process.exit(1);
-    }
-};
-
-// Start the servers with error handling
-httpsServer.on('error', handleError);
-app.on('error', handleError);
-
-// Start the servers
-httpsServer.listen(wsPort, () => {
-    console.log(`HTTPS/WebSocket Server running on port ${wsPort}`);
+// Start both HTTP and HTTPS servers
+httpServer.listen(port, () => {
+    console.log(`HTTP Server running on port ${port}`);
 });
 
-app.listen(port, () => {
-    console.log(`HTTP Server running on port ${port}`);
+httpsServer.listen(wsPort, () => {
+    console.log(`HTTPS/WebSocket Server running on port ${wsPort}`);
 });
