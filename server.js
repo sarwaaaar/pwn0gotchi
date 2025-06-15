@@ -4,9 +4,19 @@ const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 const express = require('express');
 const path = require('path');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
-const server = require('http').createServer(app);
+
+// SSL certificate options
+const options = {
+    key: fs.readFileSync('/etc/letsencrypt/live/209.38.123.74/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/209.38.123.74/fullchain.pem')
+};
+
+// Create HTTPS server
+const server = https.createServer(options, app);
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
@@ -597,6 +607,6 @@ async function handleSerialConnection(connection, sendMessage) {
 // Start the server
 const PORT = 3001;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-    console.log(`WebSocket server running on ws://0.0.0.0:${PORT}`);
+    console.log(`Secure server running on https://0.0.0.0:${PORT}`);
+    console.log(`Secure WebSocket server running on wss://0.0.0.0:${PORT}`);
 });
