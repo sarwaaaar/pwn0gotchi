@@ -2,8 +2,20 @@ const { Server } = require('ws');
 const { Client } = require('ssh2');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
+const express = require('express');
+const path = require('path');
 
-const wss = new Server({ port: 3001 });
+const app = express();
+const server = require('http').createServer(app);
+
+// Serve static files
+app.use(express.static(path.join(__dirname)));
+
+// Create WebSocket server
+const wss = new Server({
+    server: server
+});
+
 const activeConnections = new Map();
 const processedMessages = new Set();
 
@@ -582,4 +594,9 @@ async function handleSerialConnection(connection, sendMessage) {
     }
 }
 
-console.log('WebSocket server running on ws://localhost:3001');
+// Start the server
+const PORT = 3001;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`WebSocket server running on ws://0.0.0.0:${PORT}`);
+});
