@@ -45,6 +45,11 @@ chmod 644 /etc/nginx/ssl/pwn0gotchi.crt
 chmod 600 /etc/nginx/ssl/pwn0gotchi.key
 chown -R root:root /etc/nginx/ssl
 
+# Create a copy of SSL certificates in the application directory
+mkdir -p /var/www/pwn0gotchi/ssl
+cp /etc/nginx/ssl/pwn0gotchi.* /var/www/pwn0gotchi/ssl/
+chown -R www-data:www-data /var/www/pwn0gotchi/ssl
+
 # Start the application with PM2
 cd /var/www/pwn0gotchi
 

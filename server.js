@@ -15,11 +15,17 @@ const wsPort = process.env.WS_PORT || 3002;
 // Create HTTP server
 const httpServer = http.createServer(app);
 
-// Create HTTPS server with SSL certificates
-const httpsServer = https.createServer({
-    key: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.key'),
-    cert: fs.readFileSync('/etc/nginx/ssl/pwn0gotchi.crt')
-}, app);
+// Create HTTPS server with SSL certificates if they exist
+let httpsServer;
+try {
+    httpsServer = https.createServer({
+        key: fs.readFileSync(path.join(__dirname, 'ssl', 'pwn0gotchi.key')),
+        cert: fs.readFileSync(path.join(__dirname, 'ssl', 'pwn0gotchi.crt'))
+    }, app);
+} catch (err) {
+    console.log('SSL certificates not found, running in development mode');
+    httpsServer = httpServer;
+}
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
@@ -66,10 +72,17 @@ wss.on('connection', (ws) => {
     };
     activeConnections.set(connectionId, connection);
 
+    // Send initial connection status
     const sendMessage = (data) => {
         const messageId = connection.messageIdCounter++;
         ws.send(JSON.stringify({ ...data, id: messageId }));
     };
+
+    sendMessage({
+        type: 'status',
+        status: 'ready',
+        message: 'WebSocket connection established'
+    });
 
     ws.on('error', (err) => {
         console.error('WebSocket error:', err);
