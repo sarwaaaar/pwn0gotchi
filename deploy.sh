@@ -10,6 +10,10 @@ fuser -k 3000/tcp 2>/dev/null
 fuser -k 3001/tcp 2>/dev/null
 fuser -k 3002/tcp 2>/dev/null
 
+# Additional cleanup for Node.js processes
+pkill -f "node.*server.js" 2>/dev/null
+pkill -f "node.*next" 2>/dev/null
+
 # Remove existing directory
 rm -rf /var/www/pwn0gotchi
 
@@ -48,10 +52,10 @@ cd /var/www/pwn0gotchi
 PORT=3000 pm2 start npm --name "pwn0gotchi-next" -- start
 
 # Wait for Next.js to start
-sleep 5
+sleep 10
 
-# Start the WebSocket server
-PORT=3001 WS_PORT=3002 pm2 start server.js --name "pwn0gotchi-server"
+# Start the WebSocket server with environment variables
+PORT=3001 WS_PORT=3002 pm2 start server.js --name "pwn0gotchi-server" --time
 
 # Setup PM2 to start on boot
 pm2 startup

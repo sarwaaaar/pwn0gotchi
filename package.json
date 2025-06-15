@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@serialport/parser-readline": "^10.0.0",
     "express": "^5.1.0",
     "next": "15.3.3",
     "react": "^19.0.0",
