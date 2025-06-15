@@ -94,9 +94,18 @@ const commandRegistry = [
     handler: async (args, context) => {
       let { xtermRef, setConnectionType, setIsConnected } = context;
 
+      // Check if running in a secure context (HTTPS)
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        xtermRef.current.writeln(`${ANSI.error}[-] Web Serial API requires HTTPS in production${ANSI.reset}`);
+        xtermRef.current.writeln(`${ANSI.info}[*] Please use HTTPS or localhost for development${ANSI.reset}`);
+        return;
+      }
+
+      // Check browser compatibility
       if (!('serial' in navigator)) {
         xtermRef.current.writeln(`${ANSI.error}[-] Web Serial API not supported in this browser${ANSI.reset}`);
         xtermRef.current.writeln(`${ANSI.info}[*] Please use Chrome or Edge browser${ANSI.reset}`);
+        xtermRef.current.writeln(`${ANSI.info}[*] Current browser: ${navigator.userAgent}${ANSI.reset}`);
         return;
       }
 
@@ -293,10 +302,21 @@ const commandRegistry = [
     name: 'serial-info',
     handler: (args, context) => {
       let { xtermRef } = context;
-      if (!('serial' in navigator)) {
-        xtermRef.current.writeln(`${ANSI.error}[-] Web Serial API not supported in this browser${ANSI.reset}`);
+
+      // Check if running in a secure context (HTTPS)
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        xtermRef.current.writeln(`${ANSI.error}[-] Web Serial API requires HTTPS in production${ANSI.reset}`);
+        xtermRef.current.writeln(`${ANSI.info}[*] Please use HTTPS or localhost for development${ANSI.reset}`);
         return;
       }
+
+      if (!('serial' in navigator)) {
+        xtermRef.current.writeln(`${ANSI.error}[-] Web Serial API not supported in this browser${ANSI.reset}`);
+        xtermRef.current.writeln(`${ANSI.info}[*] Please use Chrome or Edge browser${ANSI.reset}`);
+        xtermRef.current.writeln(`${ANSI.info}[*] Current browser: ${navigator.userAgent}${ANSI.reset}`);
+        return;
+      }
+
       navigator.serial.getPorts().then(ports => {
         if (ports.length === 0) {
           xtermRef.current.writeln(`${ANSI.info}[*] No serial ports available${ANSI.reset}`);
@@ -314,10 +334,21 @@ const commandRegistry = [
     name: 'serial-scan',
     handler: async (args, context) => {
       let { xtermRef } = context;
-      if (!('serial' in navigator)) {
-        xtermRef.current.writeln(`${ANSI.error}[-] Web Serial API not supported in this browser${ANSI.reset}`);
+
+      // Check if running in a secure context (HTTPS)
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        xtermRef.current.writeln(`${ANSI.error}[-] Web Serial API requires HTTPS in production${ANSI.reset}`);
+        xtermRef.current.writeln(`${ANSI.info}[*] Please use HTTPS or localhost for development${ANSI.reset}`);
         return;
       }
+
+      if (!('serial' in navigator)) {
+        xtermRef.current.writeln(`${ANSI.error}[-] Web Serial API not supported in this browser${ANSI.reset}`);
+        xtermRef.current.writeln(`${ANSI.info}[*] Please use Chrome or Edge browser${ANSI.reset}`);
+        xtermRef.current.writeln(`${ANSI.info}[*] Current browser: ${navigator.userAgent}${ANSI.reset}`);
+        return;
+      }
+
       try {
         const ports = await navigator.serial.getPorts();
         if (ports.length === 0) {

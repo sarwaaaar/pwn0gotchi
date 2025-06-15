@@ -29,11 +29,20 @@ pm2 start npm --name "pwn0gotchi-next" -- start
 pm2 startup
 pm2 save
 
+# Install Certbot if not already installed
+if ! command -v certbot &> /dev/null; then
+    apt-get update
+    apt-get install -y certbot python3-certbot-nginx
+fi
+
 # Configure Nginx
 cat > /etc/nginx/sites-available/pwn0gotchi << 'EOF'
 server {
     listen 80;
+    listen 443 ssl;
     server_name 209.38.123.74;
+
+    # SSL configuration will be added by Certbot
 
     location / {
         proxy_pass http://localhost:3000;
@@ -58,8 +67,13 @@ EOF
 ln -sf /etc/nginx/sites-available/pwn0gotchi /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
-# Test and restart Nginx
+# Test Nginx configuration
 nginx -t
+
+# Obtain SSL certificate
+certbot --nginx -d 209.38.123.74 --non-interactive --agree-tos --email your-email@example.com
+
+# Restart Nginx
 systemctl restart nginx
 
 # Configure firewall
@@ -68,4 +82,4 @@ iptables -A INPUT -p tcp --dport 443 -j ACCEPT
 iptables -A INPUT -p tcp --dport 22 -j ACCEPT
 iptables-save > /etc/iptables/rules.v4
 
-echo "Deployment complete! Your application should be running at http://209.38.123.74" 
+echo "Deployment complete! Your application should be running at https://209.38.123.74" 
