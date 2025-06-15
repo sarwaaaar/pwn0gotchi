@@ -123,6 +123,14 @@ server {
         add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
         add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
+
+        # WebSocket specific error handling
+        proxy_intercept_errors on;
+        error_page 502 504 = @websocket_fallback;
+    }
+
+    location @websocket_fallback {
+        return 502 "WebSocket connection failed";
     }
 }
 EOF

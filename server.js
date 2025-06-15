@@ -32,7 +32,13 @@ app.use(express.static(path.join(__dirname)));
 
 // Create WebSocket server
 const wss = new Server({
-    server: httpsServer
+    server: httpsServer,
+    perMessageDeflate: false, // Disable compression for better performance
+    clientTracking: true,     // Enable client tracking
+    verifyClient: (info, callback) => {
+        console.log('New WebSocket connection attempt from:', info.req.headers.origin);
+        callback(true); // Accept all connections
+    }
 });
 
 const activeConnections = new Map();
@@ -61,23 +67,43 @@ function generateMessageId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 }
 
-wss.on('connection', (ws) => {
-    console.log('New WebSocket connection established');
+wss.on('error', (error) => {
+    console.error('WebSocket server error:', error);
+});
+
+httpServer.on('error', (error) => {
+    console.error('HTTP server error:', error);
+});
+
+if (httpsServer !== httpServer) {
+    httpsServer.on('error', (error) => {
+        console.error('HTTPS server error:', error);
+    });
+}
+
+wss.on('connection', (ws, req) => {
+    console.log('New WebSocket connection established from:', req.headers.origin);
     const connectionId = generateMessageId();
     const connection = {
         ws,
         isConnected: false,
         connectionType: null,
-        messageIdCounter: 0
+        messageIdCounter: 0,
+        reconnectAttempts: 0
     };
     activeConnections.set(connectionId, connection);
 
     // Send initial connection status
     const sendMessage = (data) => {
-        const messageId = connection.messageIdCounter++;
-        ws.send(JSON.stringify({ ...data, id: messageId }));
+        try {
+            const messageId = connection.messageIdCounter++;
+            ws.send(JSON.stringify({ ...data, id: messageId }));
+        } catch (err) {
+            console.error('Error sending message:', err);
+        }
     };
 
+    // Send initial connection status
     sendMessage({
         type: 'status',
         status: 'ready',
@@ -85,7 +111,7 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('error', (err) => {
-        console.error('WebSocket error:', err);
+        console.error('WebSocket client error:', err);
         sendMessage({
             type: 'error',
             message: 'Connection error',
@@ -93,8 +119,8 @@ wss.on('connection', (ws) => {
         });
     });
 
-    ws.on('close', () => {
-        console.log('WebSocket connection closed');
+    ws.on('close', (code, reason) => {
+        console.log('WebSocket connection closed:', { code, reason: reason.toString() });
         if (connection.ssh) connection.ssh.end();
         if (connection.serialPort?.isOpen) {
             connection.serialPort.close((err) => {
@@ -103,6 +129,12 @@ wss.on('connection', (ws) => {
         }
         if (connection.readCheckInterval) clearInterval(connection.readCheckInterval);
         activeConnections.delete(connectionId);
+    });
+
+    // Add ping/pong for connection health check
+    ws.isAlive = true;
+    ws.on('pong', () => {
+        ws.isAlive = true;
     });
 
     ws.on('message', async (message) => {
@@ -619,6 +651,27 @@ async function handleSerialConnection(connection, sendMessage) {
         });
     }
 }
+
+// Add connection health check interval
+const interval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+        if (ws.isAlive === false) {
+            console.log('Terminating inactive connection');
+            return ws.terminate();
+        }
+        ws.isAlive = false;
+        ws.ping();
+    });
+}, 30000);
+
+// Clean up on server shutdown
+process.on('SIGTERM', () => {
+    clearInterval(interval);
+    wss.close(() => {
+        console.log('WebSocket server closed');
+        process.exit(0);
+    });
+});
 
 // Start both HTTP and HTTPS servers
 httpServer.listen(port, () => {
