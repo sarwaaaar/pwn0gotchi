@@ -22,6 +22,7 @@ git clone https://github.com/sarwaaaar/pwn0gotchi .
 
 # Install dependencies
 npm install
+npm install serialport @serialport/parser-readline ssh2 cors ws
 
 # Build the Next.js application
 npm run build
@@ -42,8 +43,8 @@ chown -R root:root /etc/nginx/ssl
 
 # Start the application with PM2
 cd /var/www/pwn0gotchi
-PORT=3001 pm2 start server.js --name "pwn0gotchi-server"
-PORT=3001 pm2 start npm --name "pwn0gotchi-next" -- start
+pm2 start server.js --name "pwn0gotchi-server" -- --port 3001 --ws-port 3002
+PORT=3000 pm2 start npm --name "pwn0gotchi-next" -- start
 
 # Setup PM2 to start on boot
 pm2 startup
@@ -75,7 +76,7 @@ server {
     client_max_body_size 50M;
 
     location / {
-        proxy_pass http://localhost:3001;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -84,11 +85,6 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # WebSocket support
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_read_timeout 86400;
     }
 
     location /ws {

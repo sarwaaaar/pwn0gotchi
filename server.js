@@ -9,9 +9,12 @@ const { Client } = require('ssh2');
 const cors = require('cors');
 const path = require('path');
 
+// Parse command line arguments
+const args = process.argv.slice(2);
+const port = args.find(arg => arg.startsWith('--port='))?.split('=')[1] || 3001;
+const wsPort = args.find(arg => arg.startsWith('--ws-port='))?.split('=')[1] || 3002;
+
 const app = express();
-const port = 3001;
-const wsPort = 3002;
 
 // Enable CORS
 app.use(cors());
